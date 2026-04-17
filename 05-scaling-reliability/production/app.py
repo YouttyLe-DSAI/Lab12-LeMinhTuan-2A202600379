@@ -21,6 +21,8 @@ import time
 import json
 import logging
 import uuid
+import signal
+import sys
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 
@@ -95,7 +97,16 @@ async def lifespan(app: FastAPI):
     logger.info(f"Starting instance {INSTANCE_ID}")
     logger.info(f"Storage: {'Redis ✅' if USE_REDIS else 'In-memory ⚠️'}")
     yield
-    logger.info(f"Instance {INSTANCE_ID} shutting down")
+    logger.info(f"Instance {INSTANCE_ID} shutting down gracefully...")
+    # Thêm logic dọn dẹp ở đây nếu cần (ví dụ đóng connection pool)
+
+def signal_handler(sig, frame):
+    logger.info(f"Received signal {sig}. Exiting...")
+    sys.exit(0)
+
+# Đăng ký xử lý tín hiệu SIGTERM (Docker dùng cái này để tắt container)
+signal.signal(signal.SIGTERM, signal_handler)
+signal.signal(signal.SIGINT, signal_handler)
 
 
 app = FastAPI(

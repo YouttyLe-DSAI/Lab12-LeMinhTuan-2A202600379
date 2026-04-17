@@ -28,6 +28,7 @@ from fastapi.security.api_key import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import uvicorn
+import redis
 
 from app.config import settings
 
@@ -49,39 +50,73 @@ _request_count = 0
 _error_count = 0
 
 # ─────────────────────────────────────────────────────────
-# Simple In-memory Rate Limiter
+# Redis Connection
 # ─────────────────────────────────────────────────────────
-_rate_windows: dict[str, deque] = defaultdict(deque)
+try:
+    _redis = redis.from_url(settings.redis_url, decode_responses=True)
+    _redis.ping()
+    USE_REDIS = True
+except Exception:
+    USE_REDIS = False
+    logger.warning("Redis not available — using in-memory fallback (not scalable)")
+    _memory_rate_windows: dict[str, deque] = defaultdict(deque)
 
+# ─────────────────────────────────────────────────────────
+# Redis-backed Rate Limiter
+# ─────────────────────────────────────────────────────────
 def check_rate_limit(key: str):
-    now = time.time()
-    window = _rate_windows[key]
-    while window and window[0] < now - 60:
-        window.popleft()
-    if len(window) >= settings.rate_limit_per_minute:
-        raise HTTPException(
-            status_code=429,
-            detail=f"Rate limit exceeded: {settings.rate_limit_per_minute} req/min",
-            headers={"Retry-After": "60"},
-        )
-    window.append(now)
+    if not USE_REDIS:
+        # Fallback to in-memory
+        now = time.time()
+        window = _memory_rate_windows[key]
+        while window and window[0] < now - 60:
+            window.popleft()
+        if len(window) >= settings.rate_limit_per_minute:
+            raise HTTPException(429, f"Rate limit exceeded: {settings.rate_limit_per_minute} req/min")
+        window.append(now)
+        return
+
+    # Production logic: Redis sliding window or atomic counter
+    redis_key = f"rate_limit:{key}"
+    try:
+        currentCount = _redis.incr(redis_key)
+        if currentCount == 1:
+            _redis.expire(redis_key, 60)
+        
+        if currentCount > settings.rate_limit_per_minute:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Rate limit exceeded: {settings.rate_limit_per_minute} req/min",
+                headers={"Retry-After": "60"},
+            )
+    except redis.RedisError as e:
+        logger.error(f"Redis error in rate limiter: {e}")
 
 # ─────────────────────────────────────────────────────────
-# Simple Cost Guard
+# Redis-backed Cost Guard
 # ─────────────────────────────────────────────────────────
-_daily_cost = 0.0
-_cost_reset_day = time.strftime("%Y-%m-%d")
+_memory_daily_cost = 0.0  # Fallback only
 
 def check_and_record_cost(input_tokens: int, output_tokens: int):
-    global _daily_cost, _cost_reset_day
+    global _memory_daily_cost
     today = time.strftime("%Y-%m-%d")
-    if today != _cost_reset_day:
-        _daily_cost = 0.0
-        _cost_reset_day = today
-    if _daily_cost >= settings.daily_budget_usd:
-        raise HTTPException(503, "Daily budget exhausted. Try tomorrow.")
     cost = (input_tokens / 1000) * 0.00015 + (output_tokens / 1000) * 0.0006
-    _daily_cost += cost
+    
+    if not USE_REDIS:
+        _memory_daily_cost += cost
+        if _memory_daily_cost >= settings.daily_budget_usd:
+            raise HTTPException(402, "Daily budget exhausted")
+        return
+
+    # Production logic: Shared Redis counter
+    cost_key = f"cost:{today}"
+    try:
+        new_total = _redis.incrbyfloat(cost_key, cost)
+        _redis.expire(cost_key, 86400 * 2) # keep for 2 days
+        if new_total >= settings.daily_budget_usd:
+            raise HTTPException(402, "Daily budget exhausted. Try tomorrow.")
+    except redis.RedisError as e:
+        logger.error(f"Redis error in cost guard: {e}")
 
 # ─────────────────────────────────────────────────────────
 # Auth
@@ -231,7 +266,12 @@ async def ask_agent(
 def health():
     """Liveness probe. Platform restarts container if this fails."""
     status = "ok"
-    checks = {"llm": "mock" if not settings.openai_api_key else "openai"}
+    redis_status = "connected" if USE_REDIS and _redis.ping() else ("not_configured" if not USE_REDIS else "error")
+    
+    checks = {
+        "llm": "mock" if not settings.openai_api_key else "openai",
+        "redis": redis_status
+    }
     return {
         "status": status,
         "version": settings.app_version,
