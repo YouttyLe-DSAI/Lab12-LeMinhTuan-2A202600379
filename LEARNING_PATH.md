@@ -28,8 +28,8 @@ Localhost Agent          Production Agent
 
 ```python
 # Your code
-api_key = "sk-abc123"  # 😱
-app.run(port=8000)     # 🔒 Hardcoded
+api_key = "sk-abc123"  # 
+app.run(port=8000)     # 
 ```
 
 **Problem:** 
@@ -115,7 +115,7 @@ User in USA     → Internet → Your Agent on Railway
 💸 Your OpenAI bill: $0.50
 💸 Your OpenAI bill: $5.00
 💸 Your OpenAI bill: $50.00
-💸 Your OpenAI bill: $500.00  😱
+💸 Your OpenAI bill: $500.00  
 ```
 
 **Problem:**
@@ -233,7 +233,7 @@ r.set(f"conv:{user_id}", data)
 
 ---
 
-## 🛤️ The Path
+## The Path
 
 ```
 Part 1: Localhost vs Production (30 min)
@@ -265,7 +265,7 @@ Part 6: Final Project (60 min)
 
 ---
 
-## 📊 Progress Tracker
+##  Progress Tracker
 
 Use this to track your progress:
 

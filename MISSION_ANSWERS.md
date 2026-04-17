@@ -97,8 +97,17 @@ graph TD
 
 #### Nền tảng 1: Railway (Dễ tiếp cận)
 - **URL Public**: [https://lecture-day12-production.up.railway.app](https://lecture-day12-production.up.railway.app)
-- **Health check**: [https://lecture-day12-production.up.railway.app/health](https://lecture-day12-production.up.railway.app/health)
-- **Ưu điểm**: Setup cực nhanh, tự động hóa hoàn toàn với GitHub.
+- **Health check**: `GET /health` — Không cần xác thực.
+- **Endpoint công khai** (Không cần API Key): `POST /ask/public`
+- **Endpoint bảo mật** (Cần header `X-API-Key`): `POST /ask`
+- **Ưu điểm**: Setup cực nhanh, tự động hóa hoàn toàn với GitHub, auto-deploy khi push code.
+- **Kết quả test thực tế**:
+  ```
+  curl.exe -X POST https://lecture-day12-production.up.railway.app/ask/public
+    -H "Content-Type: application/json"
+    -d "{\"question\": \"What is Docker?\"}"
+  → {"answer": "...", "platform": "Railway", "llm_type": "Mock"}
+  ```
 
 #### Nền tảng 2: AWS App Runner (Production-grade)
 - **URL Public**: [https://b2xupazkma.ap-southeast-1.awsapprunner.com](https://b2xupazkma.ap-southeast-1.awsapprunner.com)
@@ -176,6 +185,6 @@ graph TD
 Đây là chặng đường cuối cùng, kết hợp tất cả các kỹ năng đã học:
 - **Kết quả kiểm tra tự động (`check_production_ready.py`)**: **20/20 checks passed (100%)**.
 - **Điểm số tối đa**: Hệ thống đạt đầy đủ các tiêu chí về Bảo mật (Auth/CostGuard), Hiệu năng (Stateless/Redis), và Hạ tầng (Docker Multi-stage/Nginx).
-- **Tình trạng**: **🎉 PRODUCTION READY!** Hệ thống đã sẵn sàng được đưa lên các Cloud platform chuyên nghiệp.
+- **Tình trạng**: ** PRODUCTION READY!** Hệ thống đã sẵn sàng được đưa lên các Cloud platform chuyên nghiệp.
 
-**Hành trình Day 12 kết thúc thành công rực rỡ! 🚀**
+

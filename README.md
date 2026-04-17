@@ -1,109 +1,277 @@
-# Day 12 — Deployment: Đưa Agent Lên Cloud
+# Day 12 — AI Agent in Production
+## Lab của Lê Minh Tuấn (2A202600379)
 
-> **AICB-P1 · VinUniversity 2026**  
-> Repository thực hành đi kèm bài giảng Day 12.  
-> Mỗi phần có ví dụ **cơ bản** (hiểu concept) và **chuyên sâu** (production-ready).
+> [!CAUTION]
+> **CẢNH BÁO BẢO MẬT — ĐỌC TRƯỚC KHI DÙNG**
+>
+> Repository này chứa code mẫu và **KHÔNG** đi kèm file `.env` hoặc API Keys thực tế.
+> Nếu bạn clone repo này, bạn **PHẢI**:
+> 1. Tự tạo file `.env` theo hướng dẫn bên dưới.
+> 2. **KHÔNG BAO GIỜ** commit file `.env` lên Git.
+> 3. **KHÔNG BAO GIỜ** dùng lại API Key của người khác.
+> 4. API Key trong file `.env.example` chỉ là ví dụ, **ĐÃ BỊ VÔ HIỆU HÓA**.
 
 ---
 
-## Cấu Trúc Project
+## 🗺️ Tổng quan dự án
+
+Lab này triển khai AI Agent theo từng bước, từ môi trường phát triển cơ bản đến hệ thống Production có khả năng chịu tải cao.
 
 ```
-day12_ha-tang-cloud_va_deployment/
-├── 01-localhost-vs-production/     # Section 1: Dev ≠ Production
-│   ├── develop/                      #   Agent "đúng kiểu localhost"
-│   └── production/                   #   12-Factor compliant agent
-│
-├── 02-docker/                      # Section 2: Containerization
-│   ├── develop/                      #   Dockerfile đơn giản
-│   └── production/                   #   Multi-stage + Docker Compose stack
-│
-├── 03-cloud-deployment/            # Section 3: Cloud Options
-│   ├── railway/                    #   Deploy Railway (< 5 phút)
-│   ├── render/                     #   Deploy Render + render.yaml
-│   └── production-cloud-run/         #   GCP Cloud Run + CI/CD
-│
-├── 04-api-gateway/                 # Section 4: Security
-│   ├── develop/                      #   API Key authentication
-│   └── production/                   #   JWT + Rate Limiting + Cost Guard
-│
-├── 05-scaling-reliability/         # Section 5: Scale & Reliability
-│   ├── develop/                      #   Health check + graceful shutdown
-│   └── production/                   #   Stateless + Redis + Nginx LB
-│
-├── 06-lab-complete/                # Lab 12: Production-ready agent
-│   └── (full project kết hợp tất cả)
-│
-└── utils/                          # Mock LLM dùng chung (không cần API key)
+Lecture-Day-12/
+├── 01-localhost-vs-production/   # So sánh code dev vs production
+├── 02-docker/                    # Docker Compose stack đầy đủ
+├── 03-cloud-deployment/railway/  # Deploy lên Railway (Cloud)
+├── 04-api-gateway/               # Bảo mật với JWT & Rate Limiting
+├── 05-scaling-reliability/       # Scale với Redis + Nginx
+└── 06-lab-complete/              # Final Project (Production-ready)
 ```
 
 ---
 
-## 🚀 Bắt Đầu Nhanh
+## ⚙️ Yêu cầu hệ thống
 
-**Muốn thử ngay?** → [QUICK_START.md](QUICK_START.md) (5 phút)
-
-**Muốn học kỹ?** → [CODE_LAB.md](CODE_LAB.md) (3-4 giờ)
-
-## Cách Học
-
-| Bước | Làm gì |
-|------|--------|
-| 0 | **[Khuyến nghị]** Đọc [QUICK_START.md](QUICK_START.md) để thử nhanh |
-| 1 | Đọc [CODE_LAB.md](CODE_LAB.md) để hiểu chi tiết |
-| 2 | Chạy ví dụ **basic** trước — hiểu concept |
-| 3 | So sánh với ví dụ **advanced** — thấy sự khác biệt |
-| 4 | Tự làm Lab 06 từ đầu trước khi xem solution |
-| 5 | Tham khảo [QUICK_REFERENCE.md](QUICK_REFERENCE.md) khi cần |
-| 6 | Xem [TROUBLESHOOTING.md](TROUBLESHOOTING.md) khi gặp lỗi |
+| Công cụ | Phiên bản tối thiểu | Cài đặt |
+|---------|---------------------|---------|
+| Python | 3.11+ | [python.org](https://python.org) |
+| Docker Desktop | 24+ | [docker.com](https://docker.com) |
+| Git | 2.40+ | [git-scm.com](https://git-scm.com) |
 
 ---
 
-## Yêu Cầu
+## 🚀 Hướng dẫn chạy từ đầu đến cuối
+
+### Bước 0: Clone và cấu hình môi trường
 
 ```bash
-python 3.11+
-docker & docker compose
+git clone https://github.com/YouttyLe-DSAI/Lab12-LeMinhTuan-2A202600379.git
+cd Lab12-LeMinhTuan-2A202600379
 ```
 
-Mỗi folder có `requirements.txt` riêng. Không cần API key thật — các ví dụ dùng **mock LLM** để chạy offline.
+> [!IMPORTANT]
+> Sau khi clone, bạn **BẮT BUỘC** phải tạo các file `.env` trước khi chạy bất cứ thứ gì.
+> Xem hướng dẫn tạo file `.env` ở phần tiếp theo.
 
 ---
 
-## Sections
+### Part 1: Localhost vs Production
 
-| # | Folder | Concept chính |
-|---|--------|--------------|
-| 1 | `01-localhost-vs-production` | Dev/prod gap, 12-factor, secrets |
-| 2 | `02-docker` | Dockerfile, multi-stage, docker-compose |
-| 3 | `03-cloud-deployment` | Railway, Render, Cloud Run |
-| 4 | `04-api-gateway` | Auth, rate limiting, cost protection |
-| 5 | `05-scaling-reliability` | Health check, stateless, rolling deploy |
-| 6 | `06-lab-complete` | **Full production agent** |
+```bash
+cd 01-localhost-vs-production/production
+
+# Tạo file .env từ template
+cp .env.example .env
+# Mở .env và điền API keys của BẠN vào
+
+# Cài đặt thư viện
+pip install -r requirements.txt
+
+# Chạy server
+python app.py
+```
+
+**Test:**
+```powershell
+# Windows PowerShell
+curl.exe http://localhost:8000/health
+```
 
 ---
 
-## 📚 Lab Materials
+### Part 2: Docker (Khuyến nghị — Không cần cài Python thủ công)
 
-Chúng tôi đã chuẩn bị đầy đủ tài liệu hướng dẫn:
+> [!IMPORTANT]
+> Tất cả lệnh `docker build` và `docker compose` phải chạy từ **thư mục gốc** (`Lecture-Day-12/`).
+> Lý do: Dockerfile cần truy cập vào thư mục `utils/` nằm ở gốc dự án.
 
-### Cho Sinh Viên
+**2a. Build bản Development (Đơn giản):**
+```bash
+# Phải đứng ở thư mục gốc Lecture-Day-12/
+docker build -f 02-docker/develop/Dockerfile -t my-agent:develop .
+docker run -p 8000:8000 my-agent:develop
+```
 
-| Tài liệu | Mô tả | Thời gian |
-|----------|-------|-----------|
-| **[CODE_LAB.md](CODE_LAB.md)** | Hướng dẫn lab chi tiết từng bước | 3-4 giờ |
-| **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** | Cheat sheet các lệnh và patterns | Tra cứu |
-| **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** | Giải quyết lỗi thường gặp | Khi cần |
+**Test bản Develop** (gửi qua URL query, không phải JSON Body):
+```powershell
+curl.exe -X POST "http://localhost:8000/ask?question=What%20is%20Docker?"
+```
 
-### Cho Giảng Viên
+**2b. Chạy Production Stack (Nginx + Redis + Qdrant):**
+```bash
+cd 02-docker/production
 
-| Tài liệu | Mô tả |
-|----------|-------|
-| **[INSTRUCTOR_GUIDE.md](INSTRUCTOR_GUIDE.md)** | Hướng dẫn chấm điểm và đánh giá |
+# Tạo file .env.local
+cp .env.example .env.local
+# Điền các giá trị vào .env.local
 
-### Cách Sử Dụng
+docker compose up -d --build
+```
 
-1. **Trước lab:** Đọc [CODE_LAB.md](CODE_LAB.md) để hiểu tổng quan
-2. **Trong lab:** Làm theo từng Part, tham khảo [QUICK_REFERENCE.md](QUICK_REFERENCE.md)
-3. **Gặp lỗi:** Xem [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
-4. **Sau lab:** Nộp Part 6 Final Project để chấm điểm
+> [!WARNING]
+> Agent không nhận request trực tiếp tại cổng 8000 trong bản Production.
+> Tất cả traffic phải đi qua **Nginx ở cổng 80**.
+
+**Test bản Production** (luôn dùng cổng 80):
+```powershell
+curl.exe http://localhost/health
+curl.exe -X POST http://localhost/ask `
+  -H "Content-Type: application/json" `
+  -d "{\`"question\`": \`"Explain microservices\`"}"
+```
+
+---
+
+### Part 3: Cloud Deployment (Railway)
+
+**Live Demo (Không cần API Key):**
+```powershell
+# Endpoint công khai — dùng thử luôn
+curl.exe -X POST https://lecture-day12-production.up.railway.app/ask/public `
+  -H "Content-Type: application/json" `
+  -d "{\`"question\`": \`"What is Docker?\`"}"
+
+# Health check
+curl.exe https://lecture-day12-production.up.railway.app/health
+```
+
+**Endpoint có bảo mật (cần API Key):**
+```powershell
+curl.exe -X POST https://lecture-day12-production.up.railway.app/ask `
+  -H "Content-Type: application/json" `
+  -H "X-API-Key: <YÊU CẦU API KEY — LIÊN HỆ TÁC GIẢ>" `
+  -d "{\`"question\`": \`"What is Docker?\`"}"
+```
+
+> [!NOTE]
+> Để deploy lên Railway của riêng bạn, xem hướng dẫn trong thư mục `03-cloud-deployment/railway/`.
+
+---
+
+### Part 4: API Security Gateway
+
+```bash
+cd 04-api-gateway/production
+
+# Tạo .env.local
+cp .env.example .env.local
+
+docker compose up -d --build
+```
+
+**Luồng xác thực:**
+```powershell
+# Bước 1: Đăng nhập lấy JWT Token
+curl.exe -X POST http://localhost:8888/auth/token `
+  -H "Content-Type: application/json" `
+  -d "{\`"username\`": \`"admin\`", \`"password\`": \`"secret\`"}"
+
+# Bước 2: Dùng token để gọi API (thay YOUR_TOKEN bằng token nhận được)
+curl.exe -X POST http://localhost:8888/ask `
+  -H "Authorization: Bearer YOUR_TOKEN" `
+  -H "Content-Type: application/json" `
+  -d "{\`"question\`": \`"What is JWT?\`"}"
+```
+
+---
+
+### Part 5: Scaling & Reliability
+
+```bash
+cd 05-scaling-reliability/production
+
+# Tạo .env.local
+cp .env.example .env.local  # hoặc tạo thủ công
+
+# Scale lên 3 instances
+docker compose up --scale agent=3 -d
+```
+
+**Verify Stateless (Session không mất khi đổi instance):**
+```bash
+python test_stateless.py
+```
+
+---
+
+### Part 6: Final Project (Production Ready)
+
+```bash
+cd 06-lab-complete
+
+# Tạo .env.local
+cp .env.example .env.local
+
+# Chạy kiểm tra chất lượng
+python check_production_ready.py
+
+# Kết quả kỳ vọng: 20/20 checks passed (100%)
+
+# Khởi động hệ thống với 3 instances
+docker compose up --build --scale agent=3
+```
+
+---
+
+## 🔑 Cấu hình biến môi trường
+
+> [!CAUTION]
+> **KHÔNG BAO GIỜ commit `.env` lên Git.** File `.gitignore` đã được cấu hình để bảo vệ bạn.
+> Nhưng bạn vẫn cần phải tự kiểm tra.
+
+Tạo file `.env.local` trong từng thư mục `production/` với nội dung sau:
+
+```env
+# === BẮT BUỘC ===
+AGENT_API_KEY=your-secret-key-here      # Khóa bảo vệ API của bạn
+OPENAI_API_KEY=sk-proj-...              # Lấy từ platform.openai.com
+
+# === TÙY CHỌN ===
+REDIS_URL=redis://redis:6379/0
+LLM_MODEL=gpt-4o-mini
+RATE_LIMIT_PER_MINUTE=10
+DAILY_BUDGET_USD=2.0
+ENVIRONMENT=production
+```
+
+---
+
+## 🐳 Các lệnh Docker thường dùng
+
+```bash
+# Xem các container đang chạy
+docker ps
+
+# Xem log của một service
+docker compose logs agent -f
+
+# Dừng toàn bộ stack
+docker compose down
+
+# Dừng và xóa toàn bộ volumes (cẩn thận!)
+docker compose down -v
+
+# Xem danh sách images
+docker images --filter "reference=my-agent*"
+```
+
+---
+
+## ⚠️ Các lỗi thường gặp & Cách sửa
+
+| Lỗi | Nguyên nhân | Cách sửa |
+|-----|-------------|----------|
+| `not found: /utils/mock_llm.py` | Chạy docker build sai thư mục | Chạy từ thư mục gốc `Lecture-Day-12/` |
+| `Failed to connect to localhost port 8000` | Agent ẩn sau Nginx | Dùng cổng `80` thay vì `8000` |
+| `422 Unprocessable Entity` | Sai định dạng tham số | Xem log để biết server mong đợi gì |
+| `env file .env.local not found` | Chưa tạo file .env | `cp .env.example .env.local` |
+| `401 Unauthorized` | Thiếu API Key header | Thêm `-H "X-API-Key: your-key"` |
+| `grep not found` | Lệnh Linux trên Windows | Dùng `Select-String` hoặc `--filter` |
+
+---
+
+## 📞 Liên hệ
+
+- **Tác giả:** Lê Minh Tuấn
+- **Student ID:** 2A202600379
+- **GitHub:** [YouttyLe-DSAI](https://github.com/YouttyLe-DSAI)
+- **Live Demo:** [lecture-day12-production.up.railway.app](https://lecture-day12-production.up.railway.app)

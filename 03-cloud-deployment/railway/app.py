@@ -73,6 +73,40 @@ async def ask_agent(request: Request):
     }
 
 
+@app.post("/ask/public")
+async def ask_public(request: Request):
+    """
+    ✅ Endpoint công khai — Không cần API Key.
+    Dùng để demo và test nhanh.
+    Rate limit: Mặc định Railway sẽ giới hạn số lượng request.
+    """
+    body = await request.json()
+    question = body.get("question", "")
+    if not question:
+        raise HTTPException(422, "question is required")
+
+    if client:
+        try:
+            response = client.chat.completions.create(
+                model=os.getenv("LLM_MODEL", "gpt-4o-mini"),
+                messages=[{"role": "user", "content": question}],
+                max_tokens=200
+            )
+            answer = response.choices[0].message.content
+        except Exception as e:
+            answer = f"Error calling OpenAI: {str(e)}"
+    else:
+        answer = mock_ask(question)
+
+    return {
+        "question": question,
+        "answer": answer,
+        "platform": "Railway",
+        "llm_type": "OpenAI" if client else "Mock",
+        "note": "Public endpoint — no API key required"
+    }
+
+
 @app.get("/health")
 def health():
     """
