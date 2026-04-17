@@ -13,7 +13,7 @@
 
 ---
 
-## 🗺️ Tổng quan dự án
+##  Tổng quan dự án
 
 Lab này triển khai AI Agent theo từng bước, từ môi trường phát triển cơ bản đến hệ thống Production có khả năng chịu tải cao.
 
@@ -39,7 +39,7 @@ Lecture-Day-12/
 
 ---
 
-## 🚀 Hướng dẫn chạy từ đầu đến cuối
+##  Hướng dẫn chạy từ đầu đến cuối
 
 ### Bước 0: Clone và cấu hình môi trường
 
@@ -212,7 +212,7 @@ docker compose up --build --scale agent=3
 
 ---
 
-## 🔑 Cấu hình biến môi trường
+##  Cấu hình biến môi trường
 
 > [!CAUTION]
 > **KHÔNG BAO GIỜ commit `.env` lên Git.** File `.gitignore` đã được cấu hình để bảo vệ bạn.
@@ -235,7 +235,7 @@ ENVIRONMENT=production
 
 ---
 
-## 🐳 Các lệnh Docker thường dùng
+##  Các lệnh Docker thường dùng
 
 ```bash
 # Xem các container đang chạy
@@ -269,7 +269,7 @@ docker images --filter "reference=my-agent*"
 
 ---
 
-## 📞 Liên hệ
+##  Liên hệ
 
 - **Tác giả:** Lê Minh Tuấn
 - **Student ID:** 2A202600379
